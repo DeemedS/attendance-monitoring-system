@@ -21,7 +21,9 @@
                     <button class="status-btn no-class" @click="markAllStudents('no-class')">No Class</button>
 
                     <button v-if="!loading" class="submit-btn" @click="submitAttendance">Submit Attendance</button>
-                    <button v-if="loading" class="submit-btn items-center cursor-not-allowed opacity-50" disabled><div class="loader"></div></button>
+                    <button v-if="loading" class="submit-btn items-center cursor-not-allowed opacity-50" disabled>
+                        <div class="loader"></div>
+                    </button>
                 </div>
 
                 <div class="totals flex flex-row gap-2">
@@ -90,25 +92,27 @@ const route = useRoute();
 const students = ref([]);
 const classDate = ref(null);
 const attendance = ref([]);
-const loading = ref(true);
+const loading = ref(false);
 const error = ref(null);
 const { showToast } = useToast();
 
 // Fetch students data
-try {
-    const { data } = await useFetch('/api/students');
-    students.value = data.value.students;
 
-    students.value.forEach((student) => {
-        if (!student.status) {
-            student.status = "";
-        }
-    });
-} catch (err) {
-    error.value = 'Failed to fetch students';
-} finally {
-    loading.value = false;
-}
+const { data } = await useFetch('/api/students', {
+    method: 'POST',
+    body: {
+        class_id: route.params.class_id,
+    },
+});
+
+students.value = data.value.students;
+
+students.value.forEach((student) => {
+    if (!student.status) {
+        student.status = "";
+    }
+});
+
 
 try {
     const { data: classData } = await useFetch('/api/classes', {
@@ -131,6 +135,7 @@ try {
         },
     });
     classDate.value = classData.value.class.class_date;
+
 } catch (err) {
     console.error('Failed to fetch class data:', err);
 }
@@ -144,6 +149,8 @@ try {
     });
 
     attendance.value = attendanceData.value.attendance;
+
+    console.log('attendance:', attendance.value);
 
     students.value.forEach(student => {
         const record = attendance.value.find(
