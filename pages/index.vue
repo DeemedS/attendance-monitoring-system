@@ -84,7 +84,7 @@ const signInWithPassword = async () => {
     showToast(authError.message, 'warning');
     return;
   } else {
-    router.push('/calendar');
+    router.push('/dashboard');
   }
 
 }
