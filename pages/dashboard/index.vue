@@ -36,7 +36,9 @@ const { data: semester, error: semesterError } = await useFetch('/api/semester',
   }
 });
 
-
+if (semesterError.value) {
+  console.error(semesterError.value);
+}
 
 const start_date = semester.value.semester[0].start_date;
 const end_date = semester.value.semester[0].end_date;
@@ -56,8 +58,6 @@ setTimeout(() => {
     selectedDate.value = new Date();
   }
 
-  handleNextClick();
-  handlePrevClick();
   addClickListeners();
 
 }, 500);
@@ -134,7 +134,7 @@ function getWeekdayLabel() {
   const firstCellInt = extractInteger(firstCell || '');
   const lastCellInt = extractInteger(lastCell || '');
 
-  return {firstCellInt, lastCellInt };
+  return { firstCellInt, lastCellInt };
 }
 
 function disableButton(button) {
