@@ -150,7 +150,6 @@ try {
 
     attendance.value = attendanceData.value.attendance;
 
-    console.log('attendance:', attendance.value);
 
     students.value.forEach(student => {
         const record = attendance.value.find(
@@ -196,6 +195,7 @@ async function submitAttendance() {
             method: 'POST',
             body: {
                 attendance: students.value.map((student, index) => ({
+                    id: student.id,
                     student_number: student.student_number,
                     status: student.status,
                     class_id: route.params.class_id,
