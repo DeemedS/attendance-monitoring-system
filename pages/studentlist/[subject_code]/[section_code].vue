@@ -14,9 +14,10 @@
                 </header>
 
                 <div class="totals flex flex-row gap-2">
-                    <p>Total Classes : <span>{{ classesCount }}</span></p>
-                    <p class="total-present">Total Present: <span>{{ presentCount }}</span></p>
-                    <p class="total-absent">Total Absent: <span>{{ absentCount }}</span></p>
+                    <p>Total Classes: <span>{{ classesCount }}</span></p>
+                    <p class="total-holiday">Holidays: <span>{{ holidayCount }}</span></p>
+                    <p class="total-no-class">No Classes: <span>{{ noClassCount }}</span></p>
+                    <p class="total-absent">Absents: <span>{{ absentCount }}</span></p>
                     <p class="total-excused">Total Excused: <span>{{ excusedCount }}</span></p>
                 </div>
 
@@ -35,7 +36,7 @@
                         </thead>
                         <tbody>
                             <tr v-for="(student, index) in studentsArray" :key="student.id">
-                                <td>{{ index + 1 }}</td> 
+                                <td>{{ index + 1 }}</td>
                                 <td>{{ student.last_name }}, {{ student.first_name }}</td>
                                 <td>{{ student.student_number }}</td>
                                 <td> {{ attendanceData[student.student_number]?.present || 0 }}</td>
@@ -68,6 +69,8 @@ const { subject_code, section_code } = route.params;
 const studentsArray = ref([]);
 const classesCount = ref(0);
 const presentCount = ref(0);
+const holidayCount = ref(0);
+const noClassCount = ref(0);
 const absentCount = ref(0);
 const excusedCount = ref(0);
 const attendanceData = ref({});
@@ -102,7 +105,7 @@ const fetchStudents = async () => {
     if (studentsError.value) {
         console.error('Failed to fetch students:', studentsError.value);
     } else {
-        studentsArray.value = students.value?.students || [];
+        studentsArray.value = students.value?.students.sort((a, b) => a.last_name.localeCompare(b.last_name));
     }
 };
 
@@ -119,17 +122,24 @@ const fetchClasses = async () => {
     if (classesError.value) {
         console.error('Failed to fetch classes:', classesError.value);
     } else {
-        const class_id = classes.value?.classes[0]?.id;
+        const classesArray = classes.value?.classes || [];
 
-        if (class_id) {
-            await fetchAttendance(class_id);
+        console.log('Classes:', classesArray);
+
+        classesCount.value = classesArray.length;
+
+        for (const classData of classesArray) {
+            console.log('Fetching attendance for class:', classData.id);
+            await fetchAttendance(classData.id);
         }
-        classesCount.value = classes.value?.classes.length || 0;
+
     }
 };
 
 
 const fetchAttendance = async (class_id) => {
+
+    console.log('Fetching attendance for class:', class_id);
     const { data: attendance, error: attendanceError } = await useFetch('/api/attendance', {
         method: 'POST',
         body: {
@@ -142,24 +152,25 @@ const fetchAttendance = async (class_id) => {
     } else {
         const attendanceArray = attendance.value?.attendance || [];
 
-
-
-        attendanceData.value = studentsArray.value.reduce((acc, student) => {
-            acc[student.student_number] = { present: 0, absent: 0, excused: 0 };
-            return acc;
-        }, {});
-
-        console.log(attendanceData.value);
+        if (Object.keys(attendanceData.value).length === 0) {
+            attendanceData.value = studentsArray.value.reduce((acc, student) => {
+                acc[student.student_number] = { present: 0, absent: 0, excused: 0, holiday: 0, noClass: 0 };
+                return acc;
+            }, {});
+        }
 
         attendanceArray.forEach(record => {
-            if (attendanceData.value[record.student_number]) {
-                attendanceData.value[record.student_number][record.status.toLowerCase()]++;
+            const studentAttendance = attendanceData.value[record.student_number];
+            if (studentAttendance) {
+                studentAttendance[record.status.toLowerCase()]++;
             }
         });
 
-        presentCount.value = attendanceArray.filter(student => student.status === 'present').length;
-        absentCount.value = attendanceArray.filter(student => student.status === 'absent').length;
-        excusedCount.value = attendanceArray.filter(student => student.status === 'excused').length;
+        noClassCount.value += attendanceArray.filter(record => record.status === 'no-class').length;
+        holidayCount.value += attendanceArray.filter(record => record.status === 'holiday').length;
+        presentCount.value += attendanceArray.filter(record => record.status === 'present').length;
+        absentCount.value += attendanceArray.filter(record => record.status === 'absent').length;
+        excusedCount.value += attendanceArray.filter(record => record.status === 'excused').length;
     }
 };
 
