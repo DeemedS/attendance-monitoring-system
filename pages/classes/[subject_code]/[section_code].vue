@@ -14,7 +14,7 @@
                 </header>
 
                 <div class="totals flex flex-row gap-2">
-                    <p>Total Classes : <span>{{ classCount }}</span></p>
+                    <p>Total Classes: <span>{{ classCount }}</span></p>
                 </div>
 
                 <div class="table-container">
@@ -25,8 +25,10 @@
                                 <th>DATE</th>
                                 <th>START TIME</th>
                                 <th>END TIME</th>
+                                <th>PRESENT</th>
+                                <th>ABSENT</th>
+                                <th>EXCUSED</th>
                                 <th>EDIT</th>
-
                             </tr>
                         </thead>
                         <tbody>
@@ -35,15 +37,14 @@
                                 <td>{{ convertDateToLocale(classItem.class_date) }}</td>
                                 <td>{{ classItem.start_time }}</td>
                                 <td>{{ classItem.end_time }}</td>
+                                <td>{{ classItem.presentCount }}</td>
+                                <td>{{ classItem.absentCount }}</td>
+                                <td>{{ classItem.excusedCount }}</td>
                                 <td><a :href="'/attendance/' + classItem.id">Edit</a></td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
-
-
-
-
             </main>
         </div>
     </div>
@@ -61,7 +62,6 @@ const { subject_code, section_code } = route.params;
 
 const classArray = ref([]);
 const classCount = ref(0);
-
 
 const fetchSubject = async () => {
     try {
@@ -81,7 +81,6 @@ const fetchSubject = async () => {
     }
 };
 
-
 const fetchClasses = async () => {
     const { data: classes, error: classesError } = await useFetch('/api/classes', {
         method: 'POST',
@@ -94,16 +93,43 @@ const fetchClasses = async () => {
     if (classesError.value) {
         console.error('Failed to fetch classes:', classesError.value);
     } else {
-        classArray.value = classes.value.classes;
-        classCount.value = classArray.length;
+
+        for (const classItem of classes.value.classes) {
+            const { presentCount, absentCount, excusedCount } = await fetchAttendance(classItem.id);
+            classArray.value.push({ ...classItem, presentCount, absentCount, excusedCount });
+        }
+
+        classArray.value.sort((a, b) => new Date(a.class_date) - new Date(b.class_date));
+        
+        classCount.value = classArray.value.length;
     }
 };
 
+const fetchAttendance = async (class_id) => {
+    console.log('Fetching attendance for class:', class_id);
+    const { data: attendance, error: attendanceError } = await useFetch('/api/attendance', {
+        method: 'POST',
+        body: { class_id: class_id },
+    });
 
+    console.log('Attendance:', attendance.value);
+
+    if (attendanceError.value) {
+        console.error('Failed to fetch attendance:', attendanceError.value);
+        return { presentCount: 0, absentCount: 0, excusedCount: 0 };
+    } else {
+        const attendanceArray = attendance.value.attendance || [];
+
+        const presentCount = attendanceArray.filter(student => student.status === 'present').length;
+        const absentCount = attendanceArray.filter(student => student.status === 'absent').length;
+        const excusedCount = attendanceArray.filter(student => student.status === 'excused').length;
+
+        return { presentCount, absentCount, excusedCount };
+    }
+};
 
 onMounted(async () => {
     await fetchSubject();
     await fetchClasses();
 });
-
 </script>
