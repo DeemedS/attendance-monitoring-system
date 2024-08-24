@@ -91,6 +91,8 @@ import { useToast } from '@/composables/useToast';
 const route = useRoute();
 const students = ref([]);
 const classDate = ref(null);
+const sectionCode = ref(null);
+const subjectCode = ref(null);
 const attendance = ref([]);
 const loading = ref(false);
 const error = ref(null);
@@ -98,34 +100,25 @@ const { showToast } = useToast();
 
 // Fetch students data
 
-const { data } = await useFetch('/api/students', {
-    method: 'POST',
-    body: {
-        class_id: route.params.class_id,
-    },
-});
-
-students.value = data.value.students;
-
-students.value.forEach((student) => {
-    if (!student.status) {
-        student.status = "";
-    }
-});
-
-
-try {
-    const { data: classData } = await useFetch('/api/classes', {
+const { data: classData } = await useFetch('/api/classes', {
         method: 'POST',
         body: {
             class_id: route.params.class_id,
         },
     });
-    classDate.value = classData.value.class.class_date;
-} catch (err) {
-    console.error('Failed to fetch class data:', err);
-}
 
+classDate.value = classData.value.class.class_date;
+sectionCode.value = classData.value.class.section_code;
+subjectCode.value = classData.value.class.subject_code;
+
+const { data: studentsData } = await useFetch('/api/students', {
+    method: 'POST',
+    body: {
+        section_code: sectionCode.value
+    },
+});
+
+students.value = studentsData.value.students.sort((a, b) => a.last_name.localeCompare(b.last_name));
 
 try {
     const { data: classData } = await useFetch('/api/classes', {
@@ -154,8 +147,10 @@ try {
     students.value.forEach(student => {
         const record = attendance.value.find(
             record => record.student_number === student.student_number
+            
         );
         student.status = record ? record.status : "";
+        student.attendance_id = record ? record.id : null;
     });
 } catch (err) {
     error.value = 'Failed to fetch attendance';
@@ -195,7 +190,7 @@ async function submitAttendance() {
             method: 'POST',
             body: {
                 attendance: students.value.map((student, index) => ({
-                    id: student.id,
+                    id: student.attendance_id,
                     student_number: student.student_number,
                     status: student.status,
                     class_id: route.params.class_id,

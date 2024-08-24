@@ -3,24 +3,36 @@ import { supabase } from "@/server/utils/supabase";
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
-
   const { attendance } = body;
 
-  console.log(attendance);
+
+  const recordsWithId = attendance.filter((record: { id: null | undefined; }) => record.id !== null && record.id !== undefined);
+  const recordsWithoutId = attendance.filter((record: { id: null | undefined; }) => record.id === null || record.id === undefined);
+  const recordsWithoutIds = recordsWithoutId.map(({ id, ...rest }: { id: any, [key: string]: any }) => rest);
 
 
-  const { data: classes, error: classesError } = await supabase
-    .from("attendance")
-    .upsert(attendance)
-    .select();
+  
+  if (recordsWithoutId.length > 0) {
+    const { error: insertError } = await supabase
+      .from("attendance")
+      .insert(recordsWithoutIds)
+      .select();
 
-    console.log(classes);
-    console.log(classesError);
-
-  if (classesError) {
-    return { statusCode: 500, error: classesError };
+    if (insertError) {
+      return { statusCode: 500, error: insertError };
+    }
   }
 
+  if (recordsWithId.length > 0) {
+    const { error: upsertError } = await supabase
+      .from("attendance")
+      .upsert(recordsWithId, { onConflict: "id" })
+      .select();
+
+    if (upsertError) {
+      return { statusCode: 500, error: upsertError };
+    }
+  }
 
   return {
     statusCode: 200,
