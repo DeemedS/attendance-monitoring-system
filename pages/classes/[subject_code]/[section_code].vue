@@ -35,7 +35,7 @@
                                 <td>{{ convertDateToLocale(classItem.class_date) }}</td>
                                 <td>{{ classItem.start_time }}</td>
                                 <td>{{ classItem.end_time }}</td>
-                                <td><a :href="'/editclass/' + subject_code + '/' + section_code + '/' + classItem.id">Edit</a></td>
+                                <td><a :href="'/attendance/' + classItem.id">Edit</a></td>
                             </tr>
                         </tbody>
                     </table>
