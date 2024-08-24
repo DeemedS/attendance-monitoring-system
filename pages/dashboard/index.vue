@@ -13,7 +13,6 @@
         :max-date="maxDate" 
         today-button 
         :disable-views="['years', 'year', 'days', 'week', 'day']"
-        :events="events" 
         :highlight-today="true"
         active-view="month"
         :selected-date="selectedDate">
@@ -48,10 +47,19 @@ const maxDate = ref(new Date(end_date));
 const selectedDate = ref(new Date(1999, 0, 1));
 
 setTimeout(() => {
-  selectedDate.value = new Date();
+  if (new Date() < minDate.value) {
+    selectedDate.value = minDate.value;
+  }
+  else if (new Date() > maxDate.value) {
+    selectedDate.value = maxDate.value;
+  } else {
+    selectedDate.value = new Date();
+  }
+
   handleNextClick();
   handlePrevClick();
   addClickListeners();
+
 }, 500);
 
 
