@@ -19,7 +19,7 @@
                     <button class="status-btn holiday" @click="markAllStudents('holiday')">Holiday</button>
                     <button class="status-btn no-class" @click="markAllStudents('no-class')">No Class</button>
 
-                    <button v-if="!loading" class="submit-btn" @click="submitAttendance">Submit Attendance</button>
+                    <button v-if="!loading" class="submit-btn" @click="submitAttendance(allStatusSelected)">Submit Attendance</button>
                     <button v-if="loading" class="submit-btn items-center cursor-not-allowed opacity-50" disabled>
                         <div class="loader"></div>
                     </button>
@@ -62,12 +62,12 @@
                                         @click="updateStatus(student, 'excused')">
                                         E
                                     </button>
-                                    <button class="status-btn holiday"
+                                    <button class="status-btn holiday cursor-not-allowed" disabled
                                         :class="{ selected: student.status === 'holiday' }"
                                         @click="updateStatus(student, 'holiday')">
                                         H
                                     </button>
-                                    <button class="status-btn no-class"
+                                    <button class="status-btn no-class cursor-not-allowed" disabled
                                         :class="{ selected: student.status === 'no-class' }"
                                         @click="updateStatus(student, 'no-class')">
                                         N
@@ -101,6 +101,7 @@ const totalStudents = ref(0);
 const totalPresent = ref(0);
 const totalAbsent = ref(0);
 const totalExcused = ref(0);
+const allStatusSelected = ref('');
 
 const { showToast } = useToast();
 
@@ -204,17 +205,51 @@ const getTotals = async () => {
 };
 
 function markAllStudents(status) {
+
+    switch (status) {
+        case 'present':
+            allStatusSelected.value = 'Perfect Attendance';
+            break;
+        case 'absent':
+            allStatusSelected.value = 'All Student Are Absent';
+            break;
+        case 'excused':
+            allStatusSelected.value = 'All Student Are Excused';
+            break;
+        case 'holiday':
+            allStatusSelected.value = 'Holiday';
+            break;
+        case 'no-class':
+            allStatusSelected.value = 'No class';
+            break;
+        default:
+            allStatusSelected.value = '';
+            break;
+    }
+
     studentsArray.value.forEach((student) => {
         student.status = status;
     });
 }
 
 function updateStatus(student, status) {
+
+    switch (status) {
+        case 'holiday':
+            allStatusSelected.value = 'Holiday for some students please edit';
+            break;
+        case 'no-class':
+            allStatusSelected.value = 'No Class for some students please edit';
+            break;
+        default:
+            allStatusSelected.value = '';
+            break;
+    }
     student.status = status;
 }
 
 
-const submitAttendance = async () => {
+const submitAttendance = async (remarks) => {
 
     loading.value = true;
 
@@ -230,6 +265,15 @@ const submitAttendance = async () => {
                 }))
             }
         });
+
+        const remarksResponse = await $fetch('/api/updateRemarks', {
+            method: 'POST',
+            body: {
+                remarks: remarks,
+                class_id: route.params.class_id,
+            }
+        });
+
 
         if (response.statusCode === 200) {
             loading.value = false;
