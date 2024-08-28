@@ -4,6 +4,7 @@
 
             <Sidebar />
 
+
             <main class="main-content">
                 <header class="page-header">
                     <h2>LIST</h2>
@@ -21,7 +22,28 @@
                     <p class="total-excused">Total Excused: <span>{{ excusedCount }}</span></p>
                 </div>
 
-                <div class="table-container">
+                <div v-if="loadingContent" class="table-container">
+                    <table id="student-table">
+                        <thead>
+                            <tr>
+                                <th>INDEX</th>
+                                <th>STUDENT NAME</th>
+                                <th>STUDENT NUMBER</th>
+                                <th>PRESENTS</th>
+                                <th>ABSENTS</th>
+                                <th>EXCUSED</th>
+                                <th>EDIT</th>
+                            </tr>
+                        </thead>
+                    </table>
+                    <tbody>
+
+                        <p>Getting data please wait...</p>
+
+                    </tbody>
+                </div>
+
+                <div v-if="!loadingContent" class="table-container">
                     <table id="student-table">
                         <thead>
                             <tr>
@@ -75,39 +97,33 @@ const noClassCount = ref(0);
 const absentCount = ref(0);
 const excusedCount = ref(0);
 const attendanceData = ref({});
+const loadingContent = ref(true);
 
-const fetchSubject = async () => {
+const fetchData = async () => {
+
     try {
-        const subject = await $fetch('/api/subjects', {
-            method: 'POST',
-            body: {
-                subject_code,
-                section_code,
-            },
-        });
+        const [subject, students] = await Promise.all([
+            $fetch('/api/subjects', {
+                method: 'POST',
+                body: { subject_code, section_code },
+            }),
+            $fetch('/api/students', {
+                method: 'POST',
+                body: { section_code, subject_code },
+            }),
+        ]);
 
         subjectId.value = subject;
-
-    } catch (error) {
-        router.push('/');
-    }
-};
-
-
-
-const fetchStudents = async () => {
-    try {
-        const students = await $fetch('/api/students', {
-            method: 'POST',
-            body: {
-                section_code,
-                subject_code,
-            },
-        });
-
         studentsArray.value = students?.students.sort((a, b) => a.last_name.localeCompare(b.last_name));
+
+        if (!subjectId.value || studentsArray.value.length === 0) {
+            router.push('/');
+        }
+
+
     } catch (error) {
-        console.error('Failed to fetch students:', error);
+        console.error('Failed to fetch data:', error);
+        router.push('/');
     }
 };
 
@@ -174,11 +190,10 @@ const fetchAttendance = async (class_id) => {
 
 onMounted(async () => {
     setTimeout(async () => {
-        await fetchSubject();
-        await fetchStudents();
+        await fetchData();
         await fetchClasses();
+        loadingContent.value = false;
     }, 1000);
-
 });
 
 </script>
