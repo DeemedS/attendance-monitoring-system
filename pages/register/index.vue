@@ -54,10 +54,6 @@ import { useToast } from '@/composables/useToast';
 const { showToast } = useToast();
 const router = useRouter();
 
-interface ApiResponse {
-  statusCode: number;
-}
-
 
 const email = ref<string>('');
 const password = ref<string>('');
@@ -65,7 +61,7 @@ const username = ref<string>('');
 
 const handleSubmit = async (): Promise<void> => {
   try {
-    const response: ApiResponse = await $fetch('/api/auth/register', {
+    const response = await $fetch('/api/auth/register', {
       method: 'POST',
       body: {
         email: email.value,
