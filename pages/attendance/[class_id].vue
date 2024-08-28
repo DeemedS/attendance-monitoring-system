@@ -1,8 +1,6 @@
 <template>
     <div class="flex flex-col container-fluid items-center justify-center h-[100vh] max-w-[1200px]">
         <div class="dashboard-box">
-            <Sidebar />
-
             <main class="main-content">
                 <header class="page-header">
                     <h2>LIST</h2>
@@ -13,6 +11,7 @@
                 </header>
 
                 <div class="actions">
+                    <button class="submit-btn" @click="backToList">Go back</button>
                     <label>Mark all students as:</label>
                     <button class="status-btn present" @click="markAllStudents('present')">Present</button>
                     <button class="status-btn absent" @click="markAllStudents('absent')">Absent</button>
@@ -44,7 +43,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="(student, index) in students" :key="student.id">
+                            <tr v-for="(student, index) in studentsArray" :key="student.id">
                                 <td>{{ index + 1 }}</td>
                                 <td>{{ student.last_name }}, {{ student.first_name }}</td>
                                 <td>{{ student.section_code }}</td>
@@ -89,75 +88,123 @@ import { ref } from 'vue';
 import { useToast } from '@/composables/useToast';
 
 const route = useRoute();
-const students = ref([]);
+const router = useRouter();
+
+const studentsArray = ref([]);
 const classDate = ref(null);
 const sectionCode = ref(null);
 const subjectCode = ref(null);
 const attendance = ref([]);
 const loading = ref(false);
 const error = ref(null);
+const totalStudents = ref(0);
+const totalPresent = ref(0);
+const totalAbsent = ref(0);
+const totalExcused = ref(0);
+
 const { showToast } = useToast();
+
 
 // Fetch students data
 
 const { data: classData } = await useFetch('/api/classes', {
-        method: 'POST',
-        body: {
-            class_id: route.params.class_id,
-        },
-    });
-
-classDate.value = classData.value.class.class_date;
-sectionCode.value = classData.value.class.section_code;
-subjectCode.value = classData.value.class.subject_code;
-
-const { data: studentsData } = await useFetch('/api/students', {
     method: 'POST',
     body: {
-        section_code: sectionCode.value
+        class_id: route.params.class_id,
     },
 });
 
-students.value = studentsData.value.students.sort((a, b) => a.last_name.localeCompare(b.last_name));
+classDate.value = classData.value.class.class_date;
+sectionCode.value = classData.value.class.section_code;
 
-try {
-    const { data: classData } = await useFetch('/api/classes', {
-        method: 'POST',
-        body: {
-            class_id: route.params.class_id,
-        },
-    });
-    classDate.value = classData.value.class.class_date;
+const getSubjectCode = async () => {
 
-} catch (err) {
-    console.error('Failed to fetch class data:', err);
-}
+    try {
+        const subjectData = await $fetch('/api/subjects', {
+            method: 'POST',
+            body: {
+                formMethod: 'getSubjectCode',
+                subject_id: classData.value.class.subject_id,
+            },
+        });
 
-try {
-    const { data: attendanceData } = await useFetch('/api/attendance', {
-        method: 'POST',
-        body: {
-            class_id: route.params.class_id,
-        },
-    });
+        subjectCode.value = subjectData.subject_code;
 
-    attendance.value = attendanceData.value.attendance;
+    } catch (error) {
+        console.error('Failed to fetch subject code:', error);
+    }
+
+};
 
 
-    students.value.forEach(student => {
-        const record = attendance.value.find(
-            record => record.student_number === student.student_number
-            
-        );
-        student.status = record ? record.status : "";
-        student.attendance_id = record ? record.id : null;
-    });
-} catch (err) {
-    error.value = 'Failed to fetch attendance';
-}
+
+const fetchStudents = async () => {
+    try {
+        const students = await $fetch('/api/students', {
+            method: 'POST',
+            body: {
+                section_code: sectionCode.value,
+                subject_code: subjectCode.value
+            },
+        });
+
+        studentsArray.value = students?.students.sort((a, b) => a.last_name.localeCompare(b.last_name));
+
+    } catch (error) {
+        console.error('Failed to fetch students:', error);
+    }
+};
+
+const fetchClasses = async () => {
+    try {
+        const classData = await $fetch('/api/classes', {
+            method: 'POST',
+            body: {
+                class_id: route.params.class_id,
+            },
+        });
+        classDate.value = classData.class.class_date;
+
+    } catch (err) {
+        console.error('Failed to fetch class data:', err);
+    }
+};
+
+const fetchAttendance = async () => {
+
+    try {
+        const attendanceData = await $fetch('/api/attendance', {
+            method: 'POST',
+            body: {
+                class_id: route.params.class_id,
+            },
+        });
+
+        attendance.value = attendanceData.attendance;
+
+
+        studentsArray.value.forEach(student => {
+            const record = attendance.value.find(
+                record => record.student_number === student.student_number
+
+            );
+            student.status = record ? record.status : "";
+            student.attendance_id = record ? record.id : null;
+        });
+    } catch (err) {
+        error.value = 'Failed to fetch attendance';
+    }
+};
+
+const getTotals = async () => {
+    totalStudents.value = studentsArray.value.length;
+    totalPresent.value = studentsArray.value.filter(student => student.status === 'present').length;
+    totalAbsent.value = studentsArray.value.filter(student => student.status === 'absent').length;
+    totalExcused.value = studentsArray.value.filter(student => student.status === 'excused').length;
+};
 
 function markAllStudents(status) {
-    students.value.forEach((student) => {
+    studentsArray.value.forEach((student) => {
         student.status = status;
     });
 }
@@ -167,29 +214,15 @@ function updateStatus(student, status) {
 }
 
 
-const totalStudents = computed(() => students.value.length);
-
-const totalPresent = computed(() =>
-    students.value.filter(student => student.status === 'present').length
-);
-
-const totalAbsent = computed(() =>
-    students.value.filter(student => student.status === 'absent').length
-);
-
-const totalExcused = computed(() =>
-    students.value.filter(student => student.status === 'excused').length
-);
-
-async function submitAttendance() {
+const submitAttendance = async () => {
 
     loading.value = true;
 
     try {
-        const response = await useFetch('/api/submitAttendance', {
+        const response = await $fetch('/api/submitAttendance', {
             method: 'POST',
             body: {
-                attendance: students.value.map((student, index) => ({
+                attendance: studentsArray.value.map((student, index) => ({
                     id: student.attendance_id,
                     student_number: student.student_number,
                     status: student.status,
@@ -198,19 +231,36 @@ async function submitAttendance() {
             }
         });
 
-        if (response.data.value.statusCode === 200) {
+        if (response.statusCode === 200) {
             loading.value = false;
             showToast('Attendance submitted successfully', 'success');
 
         } else {
-            console.error('Failed to submit attendance:', response.data.value.message);
+            loading.value = false;
+            showToast('Failed to submit attendance', response.message);
         }
 
     } catch (error) {
+        loading.value = false;
+        showToast('Failed to submit attendance', 'error');
         console.error('Error submitting attendance:', error);
     }
 }
 
+function backToList() {
+    router.push(`/classes/${subjectCode.value}/${sectionCode.value}`);
+}
+
+onMounted(async () => {
+    setTimeout(async () => {
+        await getSubjectCode();
+        await fetchStudents();
+        await fetchClasses();
+        await fetchAttendance();
+        await getTotals();
+    }, 1000);
+
+});
 
 
 </script>
