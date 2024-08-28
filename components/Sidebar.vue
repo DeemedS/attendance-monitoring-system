@@ -1,6 +1,8 @@
 <template>
     <aside class="sidebar">
 
+        <SpeedInsights />
+        
         <div class="menu-item" :class="{ active: activeMenu === 'dashboard' }"
             @click="toggleMenu('dashboard'), navigateTo('dashboard')">
             <i class="fas fa-tachometer-alt"></i> Dashboard
@@ -63,6 +65,7 @@
 
 <script setup>
 import { ref } from 'vue';
+import { SpeedInsights } from "@vercel/speed-insights/nuxt"
 
 const activeMenu = ref(null);
 const activeSubmenu = ref(null);
