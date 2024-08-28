@@ -67,6 +67,8 @@
 import { ref } from 'vue';
 import { SpeedInsights } from "@vercel/speed-insights/nuxt"
 
+const supabase = useSupabaseClient()
+
 const activeMenu = ref(null);
 const activeSubmenu = ref(null);
 const activeContent = ref(null);
@@ -141,9 +143,17 @@ function navigateTo(route) {
     router.push(`/${route}`);
 }
 
-function logout() {
-    document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-    router.push('/');
+async function logout() {
+    try {
+        const { error } = await supabase.auth.signOut();
+
+        if (error) {
+            throw new Error(error.message);
+        }
+        router.push('/');
+    } catch (error) {
+        console.error('Logout failed:', error);
+    }
 }
 
 </script>
