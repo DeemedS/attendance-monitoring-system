@@ -188,12 +188,17 @@ const fetchAttendance = async (class_id) => {
     }
 };
 
-onMounted(async () => {
+onBeforeMount(async () => {
     setTimeout(async () => {
         await fetchData();
         await fetchClasses();
-        loadingContent.value = false;
     }, 1000);
+});
+
+onMounted(() => {
+    setTimeout(() => {
+        loadingContent.value = false;
+    }, 2000);
 });
 
 </script>
