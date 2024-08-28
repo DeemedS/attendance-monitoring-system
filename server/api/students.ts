@@ -4,7 +4,7 @@ import { supabase } from "@/server/utils/supabase";
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
 
-  const { section_code, class_id } = body;
+  const { section_code, subject_code, class_id } = body;
 
   if (!section_code) {
     const { data: students, error } = await supabase
@@ -18,12 +18,12 @@ export default defineEventHandler(async (event) => {
     return { statusCode: 200, students };
   }
 
-  if (section_code) {
+  if (section_code && subject_code) {
     const { data: students, error } = await supabase
-      .from("students")
-      .select("*")
-      .eq("section_code", section_code);
-
+    .from('students')
+    .select('*')
+    .filter('subjects', 'cs', `[{"subject_code": "${subject_code}", "section_code": "${section_code}"}]`);
+  
     if (error) {
       return { statusCode: 500, error };
     }
