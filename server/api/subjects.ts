@@ -6,9 +6,12 @@ export default defineEventHandler(async (event) => {
 
   const { formAction, subject_id, assigned, subject_code, section_code } = body;
 
-  if (formAction) {
-    const action = formAction.toUpperCase();
-    if (action === "GETSUBJECTCODE") {
+  if (!formAction) {
+    return { statusCode: 400, error: "Invalid request" };
+  }
+
+  switch (formAction.toUpperCase()) {
+    case "GETSUBJECTCODE": {
       const { data: code, error } = await supabase
         .from("subjects")
         .select("*")
@@ -20,8 +23,10 @@ export default defineEventHandler(async (event) => {
       }
 
       return code;
-    } else if (action === "GETSTUDENTSLISTDATA") {
-      const { data: subjectWithClasses, error } = await supabase
+    }
+
+    case "GETSTUDENTSLISTDATA": {
+      const { data: subjectWithClasses, error: subjectError } = await supabase
         .from("subjects")
         .select(
           `
@@ -33,10 +38,16 @@ export default defineEventHandler(async (event) => {
         .eq("section_code", section_code)
         .single();
 
+      if (subjectError) {
+        return { statusCode: 500, error: subjectError };
+      }
+
       const { data: students, error: studentsError } = await supabase
         .from("students")
-        .select(`*,
-          attendances:attendance(*)`)
+        .select(
+          `*,
+          attendances:attendance(*)`
+        )
         .eq(
           "subjects",
           JSON.stringify([
@@ -47,54 +58,61 @@ export default defineEventHandler(async (event) => {
           ])
         );
 
-      if (subjectWithClasses && students) {
+      if (studentsError) {
+        return { statusCode: 500, error: studentsError };
+      }
+
+      if (subjectWithClasses) {
         subjectWithClasses.students = students;
       }
 
-      return subjectWithClasses ;
-    }
-  }
-
-  if (assigned && !subject_code && !section_code) {
-    const { data: assignedSubjects, error } = await supabase
-      .from("subjects")
-      .select("*")
-      .eq("assigned", assigned);
-
-    if (error) {
-      return { statusCode: 500, error };
+      return subjectWithClasses;
     }
 
-    const subjectsWithSections = assignedSubjects.reduce((acc, subject) => {
-      const subjectCode = subject.subject_code;
+    case "GETSUBJECTID": {
+      const { data: subject, error } = await supabase
+        .from("subjects")
+        .select("*")
+        .eq("subject_code", subject_code)
+        .eq("section_code", section_code)
+        .single();
 
-      let existingSubject = acc.find(
-        (s: { name: any }) => s.name === subjectCode
-      );
-      if (!existingSubject) {
-        existingSubject = { name: subjectCode, sections: [] };
-        acc.push(existingSubject);
+      if (error) {
+        return { statusCode: 500, error };
       }
-      existingSubject.sections.push({ name: subject.section_code });
 
-      return acc;
-    }, []);
-
-    return subjectsWithSections;
-  } else if (subject_code && section_code) {
-    const { data: subject, error } = await supabase
-      .from("subjects")
-      .select("*")
-      .eq("subject_code", subject_code)
-      .eq("section_code", section_code)
-      .single();
-
-    if (error) {
-      return { statusCode: 500, error };
+      return subject.id;
     }
 
-    return subject.id;
-  } else {
-    return { statusCode: 400, error: "Invalid request" };
+    case "GETASSIGNEDSUBJECTS": {
+      const { data: assignedSubjects, error } = await supabase
+        .from("subjects")
+        .select("*")
+        .eq("assigned", assigned);
+
+      if (error) {
+        return { statusCode: 500, error };
+      }
+
+      const subjectsWithSections = assignedSubjects.reduce((acc, subject) => {
+        const subjectCode = subject.subject_code;
+
+        let existingSubject = acc.find(
+          (s: { name: any; }) => s.name === subjectCode
+        );
+        if (!existingSubject) {
+          existingSubject = { name: subjectCode, sections: [] };
+          acc.push(existingSubject);
+        }
+        existingSubject.sections.push({ name: subject.section_code });
+
+        return acc;
+      }, []);
+
+      return subjectsWithSections;
+    }
+
+    default:
+      return { statusCode: 400, error: "Invalid form action" };
   }
 });
