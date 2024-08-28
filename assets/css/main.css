@@ -22,34 +22,90 @@ body {
 
 
 .sidebar {
-    width: 220px;
+    width: 300px;
     background-color: #800000;
     color: white;
     padding: 20px;
     border-radius: 10px 0 0 10px;
 }
 
-.sidebar ul {
-    list-style-type: none;
-    padding: 0;
-}
-
-.sidebar ul li {
-    margin-bottom: 15px;
-    text-align: center;
-}
-
-.sidebar ul li a {
-    color: white;
-    text-decoration: none;
+.menu-item,
+.submenu-item {
     font-size: 18px;
-    display: block;
-    padding: 10px 0;
+    margin: 10px 0;
+    cursor: pointer;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 5px;
+    transition: background-color 0.3s ease, border-left 0.3s ease;
+    display: flex;
+    align-items: center;
+    text-align: left;
 }
 
-.sidebar ul li a.active {
+.menu-item:hover,
+.submenu-item:hover {
+    background-color: #990000;
+}
+
+.menu-item i,
+.submenu-item i {
+    margin-right: 10px;
+    font-size: 18px;
+}
+
+.submenu-item:before {
+    content: ">";
+    margin-right: 10px;
+    color: #FFD700;
+}
+
+.menu-item.active {
+    background-color: #550000;
+    border-left: 4px solid #FFF;
     font-weight: bold;
-    text-decoration: underline;
+}
+
+.submenu-item.active {
+    background-color: #993333;
+    border-left: 4px solid #FFD700;
+}
+
+.content-item {
+    list-style-type: disc;
+    color: #ddd;
+    margin-bottom: 5px;
+    padding-left: 25px;
+}
+
+.content-item.active a {
+    background-color: #555555;
+    color: white;
+    font-weight: bold;
+    padding-left: 8px;
+    border-radius: 5px;
+}
+
+.submenu,
+.section-content {
+    margin-left: 20px;
+}
+
+.content-item a {
+    text-decoration: none;
+    color: #ddd;
+    transition: color 0.3s ease;
+    display: flex;
+    align-items: center;
+}
+
+.content-item a i {
+    margin-right: 8px;
+    font-size: 16px;
+}
+
+.content-item a:hover {
+    color: #fff;
 }
 
 .main-content {
