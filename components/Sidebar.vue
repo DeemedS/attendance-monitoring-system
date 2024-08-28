@@ -95,6 +95,7 @@ account_id.value = account.value.accountId
 const { data: subjects, error: subjectsError } = await useFetch('/api/subjects', {
     method: 'POST',
     body: {
+        formAction: 'getAssignedSubjects',
         assigned: account_id.value
     }
 });
