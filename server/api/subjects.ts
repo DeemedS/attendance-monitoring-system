@@ -4,11 +4,11 @@ import { supabase } from "@/server/utils/supabase";
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
 
-  const { formMethod, subject_id, assigned, subject_code, section_code } = body;
+  const { formAction, subject_id, assigned, subject_code, section_code } = body;
 
-  if (formMethod) {
-    const method = formMethod.toUpperCase();
-    if (method === "GETSUBJECTCODE"){
+  if (formAction) {
+    const action = formAction.toUpperCase();
+    if (action === "GETSUBJECTCODE") {
       const { data: code, error } = await supabase
         .from("subjects")
         .select("*")
@@ -19,7 +19,39 @@ export default defineEventHandler(async (event) => {
         return { statusCode: 500, error };
       }
 
-      return code
+      return code;
+    } else if (action === "GETSTUDENTSLISTDATA") {
+      const { data: subjectWithClasses, error } = await supabase
+        .from("subjects")
+        .select(
+          `
+          *,
+          classes:classes(*)
+        `
+        )
+        .eq("subject_code", subject_code)
+        .eq("section_code", section_code)
+        .single();
+
+      const { data: students, error: studentsError } = await supabase
+        .from("students")
+        .select(`*,
+          attendances:attendance(*)`)
+        .eq(
+          "subjects",
+          JSON.stringify([
+            {
+              section_code: section_code,
+              subject_code: subject_code,
+            },
+          ])
+        );
+
+      if (subjectWithClasses && students) {
+        subjectWithClasses.students = students;
+      }
+
+      return subjectWithClasses ;
     }
   }
 

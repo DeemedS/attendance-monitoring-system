@@ -123,7 +123,7 @@ const getSubjectCode = async () => {
         const subjectData = await $fetch('/api/subjects', {
             method: 'POST',
             body: {
-                formMethod: 'getSubjectCode',
+                formAction: 'getSubjectCode',
                 subject_id: classData.value.class.subject_id,
             },
         });
