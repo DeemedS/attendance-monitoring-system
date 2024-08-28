@@ -4,6 +4,7 @@
             <Sidebar />
 
             <main class="main-content">
+
                 <header class="page-header">
                     <h2>LIST</h2>
                     <div class="search-container">
@@ -50,7 +51,9 @@
                         </tbody>
                     </table>
                 </div>
+
             </main>
+
         </div>
     </div>
 </template>
