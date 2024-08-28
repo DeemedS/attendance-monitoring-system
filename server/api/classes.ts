@@ -4,9 +4,9 @@ import { supabase } from "@/server/utils/supabase";
 export default defineEventHandler(async (event) => {
   const body = await readBody(event);
 
-  const { subject_code, section_code, class_id } = body;
+  const { subject_id, section_code, class_id } = body;
 
-  if (!subject_code || (!section_code && class_id)) {
+  if (class_id) {
     const { data: classes, error } = await supabase
       .from("classes")
       .select("*")
@@ -17,11 +17,11 @@ export default defineEventHandler(async (event) => {
     }
 
     return { statusCode: 200, class: classes[0] };
-  } else if (subject_code && section_code) {
+  } else if (subject_id && section_code) {
     const { data: classes, error } = await supabase
       .from("classes")
       .select("*")
-      .eq("subject_code", subject_code)
+      .eq("subject_id", subject_id)
       .eq("section_code", section_code);
 
     if (error) {
