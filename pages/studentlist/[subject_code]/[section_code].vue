@@ -58,7 +58,7 @@
 
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 const route = useRoute();
@@ -66,6 +66,7 @@ const router = useRouter();
 
 const { subject_code, section_code } = route.params;
 
+const subjectId = ref(null);
 const studentsArray = ref([]);
 const classesCount = ref(0);
 const presentCount = ref(0);
@@ -77,80 +78,74 @@ const attendanceData = ref({});
 
 const fetchSubject = async () => {
     try {
-        const { data: subject, error: subjectError } = await useFetch('/api/subjects', {
+        const subject = await $fetch('/api/subjects', {
             method: 'POST',
             body: {
-                subject_code: subject_code,
-                section_code: section_code,
-            }
+                subject_code,
+                section_code,
+            },
         });
 
-        if (subject.value?.statusCode === 500) {
-            router.push('/');
-        }
+        subjectId.value = subject;
+
     } catch (error) {
         router.push('/');
     }
 };
 
 
-const fetchStudents = async () => {
-    const { data: students, error: studentsError } = await useFetch('/api/students', {
-        method: 'POST',
-        body: {
-            section_code: section_code,
-        }
-    });
 
-    if (studentsError.value) {
-        console.error('Failed to fetch students:', studentsError.value);
-    } else {
-        studentsArray.value = students.value?.students.sort((a, b) => a.last_name.localeCompare(b.last_name));
+const fetchStudents = async () => {
+    try {
+        const students = await $fetch('/api/students', {
+            method: 'POST',
+            body: {
+                section_code,
+                subject_code,
+            },
+        });
+
+        studentsArray.value = students?.students.sort((a, b) => a.last_name.localeCompare(b.last_name));
+    } catch (error) {
+        console.error('Failed to fetch students:', error);
     }
 };
 
 
 const fetchClasses = async () => {
-    const { data: classes, error: classesError } = await useFetch('/api/classes', {
-        method: 'POST',
-        body: {
-            subject_code: subject_code,
-            section_code: section_code,
-        }
-    });
+    try {
+        const classes = await $fetch('/api/classes', {
+            method: 'POST',
+            body: {
+                subject_id: subjectId.value,
+                section_code,
+            },
+        });
 
-    if (classesError.value) {
-        console.error('Failed to fetch classes:', classesError.value);
-    } else {
-        const classesArray = classes.value?.classes || [];
-
-        console.log('Classes:', classesArray);
+        const classesArray = classes?.classes || [];
 
         classesCount.value = classesArray.length;
 
         for (const classData of classesArray) {
-            console.log('Fetching attendance for class:', classData.id);
             await fetchAttendance(classData.id);
         }
 
+    } catch (error) {
+        console.error('Failed to fetch classes:', error);
     }
 };
 
 
 const fetchAttendance = async (class_id) => {
+    try {
+        const attendance = await $fetch('/api/attendance', {
+            method: 'POST',
+            body: {
+                class_id,
+            },
+        });
 
-    console.log('Fetching attendance for class:', class_id);
-    const { data: attendance, error: attendanceError } = await useFetch('/api/attendance', {
-        method: 'POST',
-        body: {
-            class_id: class_id,
-        }
-    });
-
-    if (attendanceError.value) {
-        console.error('Failed to fetch attendance:', attendanceError.value);
-    } else {
-        const attendanceArray = attendance.value?.attendance || [];
+        const attendanceArray = attendance?.attendance || [];
 
         if (Object.keys(attendanceData.value).length === 0) {
             attendanceData.value = studentsArray.value.reduce((acc, student) => {
@@ -171,13 +166,19 @@ const fetchAttendance = async (class_id) => {
         presentCount.value += attendanceArray.filter(record => record.status === 'present').length;
         absentCount.value += attendanceArray.filter(record => record.status === 'absent').length;
         excusedCount.value += attendanceArray.filter(record => record.status === 'excused').length;
+
+    } catch (error) {
+        console.error('Failed to fetch attendance:', error);
     }
 };
 
 onMounted(async () => {
-    await fetchSubject();
-    await fetchStudents();
-    await fetchClasses();
+    setTimeout(async () => {
+        await fetchSubject();
+        await fetchStudents();
+        await fetchClasses();
+    }, 1000);
+
 });
 
 </script>
