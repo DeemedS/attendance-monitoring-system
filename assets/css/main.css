@@ -6,6 +6,10 @@ body {
 
 }
 
+.cursor-not-allowed {
+    cursor: not-allowed !important;
+}
+
 .vuecal__cell--disabled {
     display: none !important;
   }
