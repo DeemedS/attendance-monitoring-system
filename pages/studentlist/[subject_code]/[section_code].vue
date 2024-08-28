@@ -32,9 +32,48 @@
                                 <th>INDEX</th>
                                 <th>STUDENT NAME</th>
                                 <th>STUDENT NUMBER</th>
-                                <th>PRESENTS</th>
-                                <th>ABSENTS</th>
-                                <th>EXCUSED</th>
+                                <th>
+                                    <div class="header-with-icon">
+                                        <span>PRESENTS</span>
+                                        <button @click="changeSort('presents')">
+                                            <FontAwesomeIcon v-if="presentSortDir === 'default'" :icon="faSort" />
+                                            <FontAwesomeIcon
+                                                v-if="presentSortCol === 'presents' && presentSortDir === 'asc'"
+                                                :icon="faSortUp" />
+                                            <FontAwesomeIcon
+                                                v-if="presentSortCol === 'presents' && presentSortDir === 'desc'"
+                                                :icon="faSortDown" />
+                                        </button>
+                                    </div>
+                                </th>
+                                <th>
+                                    <div class="header-with-icon">
+                                        <span>ABSENTS</span>
+                                        <button @click="changeSort('absents')">
+                                            <FontAwesomeIcon v-if="absentSortDir === 'default'" :icon="faSort" />
+                                            <FontAwesomeIcon
+                                                v-if="absentSortCol === 'absents' && absentSortDir === 'asc'"
+                                                :icon="faSortUp" />
+                                            <FontAwesomeIcon
+                                                v-if="absentSortCol === 'absents' && absentSortDir === 'desc'"
+                                                :icon="faSortDown" />
+                                        </button>
+                                    </div>
+                                </th>
+                                <th>
+                                    <div class="header-with-icon">
+                                        <span>EXCUSED</span>
+                                        <button @click="changeSort('excused')">
+                                            <FontAwesomeIcon v-if="excusedSortDir === 'default'" :icon="faSort" />
+                                            <FontAwesomeIcon
+                                                v-if="excusedSortCol === 'excused' && excusedSortDir === 'asc'"
+                                                :icon="faSortUp" />
+                                            <FontAwesomeIcon
+                                                v-if="excusedSortCol === 'excused' && excusedSortDir === 'desc'"
+                                                :icon="faSortDown" />
+                                        </button>
+                                    </div>
+                                </th>
                                 <th>EDIT</th>
                             </tr>
                         </thead>
@@ -61,6 +100,9 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import { useRoute, useRouter } from 'vue-router';
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
+import { faSort, faSortUp, faSortDown } from '@fortawesome/free-solid-svg-icons';
+
 
 const route = useRoute();
 const router = useRouter();
@@ -75,6 +117,13 @@ const absentCount = ref(0);
 const excusedCount = ref(0);
 const attendanceData = ref({});
 const loadingContent = ref(true);
+
+const presentSortCol = ref('');
+const absentSortCol = ref('');
+const excusedSortCol = ref('');
+const presentSortDir = ref('default');
+const absentSortDir = ref('default');
+const excusedSortDir = ref('default');
 
 const fetchAttendance = async (classIds) => {
     try {
@@ -148,6 +197,89 @@ const fetchData = async () => {
         router.replace("/");
     }
 };
+
+function changeSort(column) {
+    if (column === 'presents') {
+
+        switch (presentSortDir.value) {
+            case 'default':
+                presentSortDir.value = 'asc';
+                presentSortCol.value = 'presents';
+                studentsArray.value = studentsArray.value.sort((a, b) => {
+                    return attendanceData.value[b.student_number]?.present - attendanceData.value[a.student_number]?.present;
+                });
+
+                break;
+            case 'asc':
+                presentSortDir.value = 'desc';
+                presentSortCol.value = 'presents';
+
+                studentsArray.value = studentsArray.value.sort((a, b) => {
+                    return attendanceData.value[a.student_number]?.present - attendanceData.value[b.student_number]?.present;
+                });
+                break;
+            case 'desc':
+                presentSortDir.value = 'default';
+                presentSortCol.value = 'presents';
+                studentsArray.value = studentsArray.value.sort((a, b) => {
+                    return a.last_name.localeCompare(b.last_name);
+                });
+                break;
+        }
+    } else if (column === 'absents') {
+        switch (absentSortDir.value) {
+            case 'default':
+                absentSortDir.value = 'asc';
+                absentSortCol.value = 'absents';
+                studentsArray.value = studentsArray.value.sort((a, b) => {
+                    return attendanceData.value[b.student_number]?.absent - attendanceData.value[a.student_number]?.absent;
+                });
+
+                break;
+            case 'asc':
+                absentSortDir.value = 'desc';
+                absentSortCol.value = 'absents';
+                studentsArray.value = studentsArray.value.sort((a, b) => {
+                    return attendanceData.value[a.student_number]?.absent - attendanceData.value[b.student_number]?.absent;
+                });
+
+                break;
+            case 'desc':
+                absentSortDir.value = 'default';
+                absentSortCol.value = 'absents';
+                studentsArray.value = studentsArray.value.sort((a, b) => {
+                    return a.last_name.localeCompare(b.last_name);
+                });
+                break;
+        }
+    } else if (column === 'excused') {
+        switch (excusedSortDir.value) {
+            case 'default':
+                excusedSortDir.value = 'asc';
+                excusedSortCol.value = 'excused';
+                studentsArray.value = studentsArray.value.sort((a, b) => {
+                    return attendanceData.value[b.student_number]?.excused - attendanceData.value[a.student_number]?.excused;
+                });
+
+                break;
+            case 'asc':
+                excusedSortDir.value = 'desc';
+                excusedSortCol.value = 'excused';
+                studentsArray.value = studentsArray.value.sort((a, b) => {
+                    return attendanceData.value[a.student_number]?.excused - attendanceData.value[b.student_number]?.excused;
+                });
+
+                break;
+            case 'desc':
+                excusedSortDir.value = 'default';
+                excusedSortCol.value = 'excused';
+                studentsArray.value = studentsArray.value.sort((a, b) => {
+                    return a.last_name.localeCompare(b.last_name);
+                });
+                break;
+        }
+    }
+}
 
 onMounted(async () => {
     await fetchData();
