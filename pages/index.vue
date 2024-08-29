@@ -35,10 +35,15 @@
           </div>
 
           <div>
-            <button type="submit"
+            <button v-if="!loginLoading" type="submit"
               class="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Sign
               in</button>
+            <button v-else type="submit"
+              class="flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+              <div class="loader"></div>
+            </button>
           </div>
+
         </form>
       </div>
     </div>
@@ -60,9 +65,10 @@ const router = useRouter()
 
 const username = ref<string>('');
 const password = ref<string>('');
+const loginLoading = ref<boolean>(false);
 
 const signInWithPassword = async () => {
-
+  loginLoading.value = true;
 
   const { data: user, error: userError } = await supabase
     .from('accounts')
@@ -71,6 +77,7 @@ const signInWithPassword = async () => {
     .single();
 
   if (userError) {
+    loginLoading.value = false;
     showToast("User does not exist", 'danger');
     return;
   }
@@ -81,6 +88,7 @@ const signInWithPassword = async () => {
   });
 
   if (authError) {
+    loginLoading.value = false;
     showToast(authError.message, 'warning');
     return;
   } else {
